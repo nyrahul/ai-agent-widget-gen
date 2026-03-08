@@ -33,11 +33,10 @@ clean:
 	docker rmi $(FULL_IMAGE)
 
 deploy:
-	cd k8s && kustomize edit set image docker.io/ai-widget-generator=$(FULL_IMAGE) && \
-	kubectl apply -k .
+	sed 's|image: docker.io/nyrahul/ai-widget-generator:latest|image: $(FULL_IMAGE)|' k8s/deploy.yaml | kubectl apply -f -
 
 undeploy:
-	kubectl delete -k k8s/
+	kubectl delete -f k8s/deploy.yaml
 
 k8s-status:
 	kubectl -n ai-widget-generator get pods,svc,ingress
