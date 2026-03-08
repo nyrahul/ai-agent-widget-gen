@@ -21,6 +21,7 @@ class FirewallResult(BaseModel):
     original: str
     sanitized: str
     error: str | None = None
+    duration_ms: int | None = None
 
 
 class GenerateResponse(BaseModel):

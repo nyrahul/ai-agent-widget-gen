@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -21,18 +22,21 @@ def _run_prompt_firewall(req):
         return req.prompt, None, None
 
     try:
+        t0 = time.monotonic()
         result = scan_prompt(
             api_key=req.accuknox.api_key,
             user_info=req.accuknox.user_info,
             content=req.prompt,
             base_url=req.accuknox.base_url,
         )
+        elapsed = int((time.monotonic() - t0) * 1000)
         fw = FirewallResult(
             stage="prompt",
             query_status=result.query_status,
             original=req.prompt,
             sanitized=result.sanitized_content,
             error=result.error,
+            duration_ms=elapsed,
         )
         if result.query_status == "BLOCK":
             return None, None, fw
@@ -55,6 +59,7 @@ def _run_response_firewall(req, content, sanitized_prompt, session_id):
         return content, None
 
     try:
+        t0 = time.monotonic()
         result = scan_response(
             api_key=req.accuknox.api_key,
             user_info=req.accuknox.user_info,
@@ -63,12 +68,14 @@ def _run_response_firewall(req, content, sanitized_prompt, session_id):
             session_id=session_id or "",
             base_url=req.accuknox.base_url,
         )
+        elapsed = int((time.monotonic() - t0) * 1000)
         fw = FirewallResult(
             stage="response",
             query_status=result.query_status,
             original=content,
             sanitized=result.sanitized_content,
             error=result.error,
+            duration_ms=elapsed,
         )
         return result.sanitized_content, fw
     except Exception as e:
@@ -152,6 +159,7 @@ async def generate_widget_stream(req: GenerateRequest):
             "original": fw_prompt.original,
             "sanitized": fw_prompt.sanitized,
             "error": fw_prompt.error,
+            "duration_ms": fw_prompt.duration_ms,
         })
 
     if sanitized_prompt is None:
@@ -229,6 +237,7 @@ async def generate_widget_stream(req: GenerateRequest):
                     "original": fw_resp.original,
                     "sanitized": fw_resp.sanitized,
                     "error": fw_resp.error,
+                    "duration_ms": fw_resp.duration_ms,
                 })
                 yield f"data: {resp_event}\n\n"
 

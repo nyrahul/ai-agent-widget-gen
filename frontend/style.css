@@ -53,8 +53,12 @@ header {
 
 .header-right {
     margin-left: auto;
+    display: flex;
+    gap: 0.4rem;
 }
 
+#toggle-settings,
+#toggle-code,
 #theme-toggle {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -67,7 +71,15 @@ header {
     transition: background 0.2s;
 }
 
+#toggle-settings:hover,
+#toggle-code:hover,
 #theme-toggle:hover {
+    background: var(--primary);
+    color: white;
+}
+
+#toggle-settings.active,
+#toggle-code.active {
     background: var(--primary);
     color: white;
 }
@@ -96,6 +108,19 @@ main {
     display: grid;
     grid-template-columns: 260px 1fr 360px;
     height: calc(100vh - 72px);
+    transition: grid-template-columns 0.3s ease;
+}
+
+main.settings-hidden {
+    grid-template-columns: 0px 1fr 360px;
+}
+
+main.code-hidden {
+    grid-template-columns: 260px 1fr 0px;
+}
+
+main.settings-hidden.code-hidden {
+    grid-template-columns: 0px 1fr 0px;
 }
 
 /* Settings Panel */
@@ -104,6 +129,40 @@ main {
     border-right: 1px solid var(--border);
     background: var(--surface);
     overflow-y: auto;
+    overflow-x: hidden;
+    transition: padding 0.3s ease, opacity 0.3s ease;
+}
+
+main.settings-hidden #settings-panel {
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    border-right: none;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.panel-collapse-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.1rem 0.45rem;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.panel-collapse-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
 }
 
 #settings-panel h2 {
@@ -111,7 +170,7 @@ main {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 .form-group {
@@ -375,6 +434,13 @@ main {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: opacity 0.3s ease;
+}
+
+main.code-hidden #code-panel {
+    opacity: 0;
+    pointer-events: none;
+    border-left: none;
 }
 
 #code-tabs {
@@ -498,6 +564,22 @@ main {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.4rem;
+}
+
+.fw-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.fw-duration {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 500;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .fw-stage {

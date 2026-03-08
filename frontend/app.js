@@ -22,6 +22,11 @@ const accuknoxUser = document.getElementById('accuknox-user');
 const accuknoxBaseUrl = document.getElementById('accuknox-base-url');
 const firewallLog = document.getElementById('firewall-log');
 const stopBtn = document.getElementById('stop-btn');
+const toggleSettingsBtn = document.getElementById('toggle-settings');
+const toggleCodeBtn = document.getElementById('toggle-code');
+const collapseSettingsBtn = document.getElementById('collapse-settings');
+const collapseCodeBtn = document.getElementById('collapse-code');
+const mainEl = document.querySelector('main');
 
 // State
 let generatedCode = '';
@@ -51,6 +56,56 @@ themeToggle.addEventListener('click', () => {
 });
 
 loadTheme();
+
+// --- Panel Toggles ---
+
+function loadPanelState() {
+    const saved = localStorage.getItem('widget-gen-panels');
+    if (saved) {
+        const s = JSON.parse(saved);
+        if (s.settingsHidden) mainEl.classList.add('settings-hidden');
+        if (s.codeHidden) mainEl.classList.add('code-hidden');
+    }
+    updateToggleButtons();
+}
+
+function savePanelState() {
+    localStorage.setItem('widget-gen-panels', JSON.stringify({
+        settingsHidden: mainEl.classList.contains('settings-hidden'),
+        codeHidden: mainEl.classList.contains('code-hidden'),
+    }));
+}
+
+function updateToggleButtons() {
+    toggleSettingsBtn.classList.toggle('active', !mainEl.classList.contains('settings-hidden'));
+    toggleCodeBtn.classList.toggle('active', !mainEl.classList.contains('code-hidden'));
+}
+
+toggleSettingsBtn.addEventListener('click', () => {
+    mainEl.classList.toggle('settings-hidden');
+    updateToggleButtons();
+    savePanelState();
+});
+
+toggleCodeBtn.addEventListener('click', () => {
+    mainEl.classList.toggle('code-hidden');
+    updateToggleButtons();
+    savePanelState();
+});
+
+collapseSettingsBtn.addEventListener('click', () => {
+    mainEl.classList.add('settings-hidden');
+    updateToggleButtons();
+    savePanelState();
+});
+
+collapseCodeBtn.addEventListener('click', () => {
+    mainEl.classList.add('code-hidden');
+    updateToggleButtons();
+    savePanelState();
+});
+
+loadPanelState();
 
 // --- Prompt History ---
 
@@ -209,6 +264,43 @@ function renderWidget(code) {
     widgetFrame.srcdoc = code;
 }
 
+function renderFirewallAlert(status, stage) {
+    const isBlock = status === 'BLOCK';
+    const color = isBlock ? '#e74c3c' : '#f39c12';
+    const icon = isBlock ? '&#x1F6D1;' : '&#x26A0;&#xFE0F;';
+    const title = isBlock
+        ? `Prompt ${stage === 'prompt' ? 'Blocked' : 'Response Blocked'}`
+        : `${stage === 'prompt' ? 'Prompt' : 'Response'} Flagged for Review`;
+    const message = isBlock
+        ? `AccuKnox Firewall has blocked this ${stage}. The content was deemed unsafe.`
+        : `AccuKnox Firewall flagged this ${stage} with MONITOR status. Proceed with caution.`;
+
+    const html = `<!DOCTYPE html>
+<html><head><style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh;
+         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background: #1a1d27; color: #e1e4eb; }
+  .alert { text-align: center; max-width: 460px; padding: 2.5rem; }
+  .icon { font-size: 3.5rem; margin-bottom: 1rem; }
+  .title { font-size: 1.4rem; font-weight: 600; color: ${color}; margin-bottom: 0.75rem; }
+  .message { font-size: 0.95rem; color: #8b8fa3; line-height: 1.6; margin-bottom: 1.25rem; }
+  .badge { display: inline-block; padding: 0.3rem 0.9rem; border-radius: 20px; font-size: 0.8rem;
+           font-weight: 600; background: ${color}22; color: ${color}; border: 1px solid ${color}44; }
+</style></head><body>
+  <div class="alert">
+    <div class="icon">${icon}</div>
+    <div class="title">${title}</div>
+    <div class="message">${message}</div>
+    <span class="badge">AccuKnox Firewall: ${status}</span>
+  </div>
+</body></html>`;
+
+    widgetPlaceholder.classList.add('hidden');
+    widgetFrame.classList.remove('hidden');
+    widgetFrame.srcdoc = html;
+}
+
 function displayCode(code) {
     generatedCode = code;
     codeDisplay.textContent = code;
@@ -243,11 +335,17 @@ function addFirewallEntry(data) {
     if (sanitizedChanged) {
         detailHtml += `<div class="fw-detail"><strong>Modified:</strong> Content was sanitized by the firewall</div>`;
     }
+    if (data.duration_ms != null) {
+        detailHtml += `<div class="fw-detail"><strong>Response time:</strong> ${data.duration_ms} ms</div>`;
+    }
 
     entry.innerHTML = `
         <div class="fw-entry-header">
             <span class="fw-stage">${escapeHtml(data.stage)} scan</span>
-            <span class="fw-status ${statusClass}">${escapeHtml(data.query_status || 'UNCHECKED')}</span>
+            <div class="fw-header-right">
+                ${data.duration_ms != null ? `<span class="fw-duration">${data.duration_ms} ms</span>` : ''}
+                <span class="fw-status ${statusClass}">${escapeHtml(data.query_status || 'UNCHECKED')}</span>
+            </div>
         </div>
         ${detailHtml}
     `;
@@ -289,6 +387,9 @@ async function generateWidget() {
     codeDisplay.textContent = '';
     planDisplay.textContent = '';
     resetFirewallLog();
+    widgetFrame.removeAttribute('srcdoc');
+    widgetFrame.classList.add('hidden');
+    widgetPlaceholder.classList.remove('hidden');
 
     const body = {
         prompt,
@@ -326,6 +427,7 @@ async function generateWidget() {
         let streamText = '';
         let finalCode = '';
         let finalPlan = '';
+        let firewallBlocked = false;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -339,7 +441,7 @@ async function generateWidget() {
                 if (!line.startsWith('data: ')) continue;
                 const data = line.slice(6).trim();
                 if (data === '[DONE]') {
-                    if (finalCode) {
+                    if (finalCode && !firewallBlocked) {
                         renderWidget(finalCode);
                         displayCode(finalCode);
                     }
@@ -351,6 +453,12 @@ async function generateWidget() {
 
                 if (event.type === 'firewall') {
                     addFirewallEntry(event);
+                    if (event.query_status === 'BLOCK') {
+                        firewallBlocked = true;
+                        renderFirewallAlert(event.query_status, event.stage);
+                    } else if (event.query_status === 'MONITOR') {
+                        renderFirewallAlert(event.query_status, event.stage);
+                    }
                 } else if (event.type === 'token') {
                     streamText += event.content;
                     streamingOutput.textContent = streamText.slice(-500);
