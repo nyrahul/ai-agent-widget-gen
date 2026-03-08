@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-widget-generator
+  namespace: ai-widget-generator
+  labels:
+    app: ai-widget-generator
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-widget-generator
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP

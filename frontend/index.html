@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Widget Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <img src="https://accuknox.com/wp-content/uploads/accuknox-logo-2.png" alt="AccuKnox" class="header-logo">
+            <div>
+                <h1>AI Widget Generator</h1>
+                <p class="subtitle">Describe a widget and AI will build it for you</p>
+            </div>
+            <div class="header-right">
+                <button id="theme-toggle" title="Toggle dark/light mode">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Settings Panel -->
+        <aside id="settings-panel">
+            <h2>Settings</h2>
+            <div class="form-group">
+                <label for="provider-select">LLM Provider</label>
+                <select id="provider-select">
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="openai">OpenAI (GPT)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="api-key-input">API Key</label>
+                <input type="password" id="api-key-input" placeholder="sk-... or your API key">
+                <button id="toggle-key-visibility" type="button" title="Show/hide key">👁</button>
+            </div>
+            <div class="form-group">
+                <label for="model-input">Model (optional)</label>
+                <input type="text" id="model-input" placeholder="e.g. claude-sonnet-4-5-20250929 or gpt-4o">
+            </div>
+            <div class="status-indicator" id="settings-status"></div>
+
+            <hr class="settings-divider">
+            <h2>AccuKnox Firewall</h2>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="accuknox-enabled"> Enable Prompt Firewall
+                </label>
+            </div>
+            <div id="accuknox-fields" class="hidden">
+                <div class="form-group">
+                    <label for="accuknox-key">AccuKnox Token</label>
+                    <input type="password" id="accuknox-key" placeholder="AccuKnox API token">
+                </div>
+                <div class="form-group">
+                    <label for="accuknox-user">User Info</label>
+                    <input type="text" id="accuknox-user" placeholder="email or username">
+                </div>
+                <div class="form-group">
+                    <label for="accuknox-base-url">Base URL (optional)</label>
+                    <input type="text" id="accuknox-base-url" placeholder="https://custom.accuknox.com">
+                </div>
+            </div>
+            <div id="firewall-status"></div>
+        </aside>
+
+        <!-- Center: Prompt + Widget -->
+        <section id="center-panel">
+            <div id="prompt-area">
+                <div id="prompt-wrapper">
+                    <textarea id="prompt-input" rows="3" placeholder="Describe the widget you want... e.g. 'Create a bar chart showing world population by continent'"></textarea>
+                    <select id="history-select">
+                        <option value="" disabled selected>Prompt history...</option>
+                    </select>
+                </div>
+                <button id="generate-btn">Generate Widget</button>
+                <button id="stop-btn" class="hidden">Stop</button>
+            </div>
+
+            <div id="progress-area" class="hidden">
+                <div class="progress-steps">
+                    <span id="step-plan" class="step">Planning</span>
+                    <span class="step-arrow">&rarr;</span>
+                    <span id="step-generate" class="step">Generating</span>
+                    <span class="step-arrow">&rarr;</span>
+                    <span id="step-validate" class="step">Validating</span>
+                </div>
+                <div id="streaming-output"></div>
+            </div>
+
+            <div id="widget-area">
+                <h2>Widget Preview</h2>
+                <div id="widget-container">
+                    <div id="widget-placeholder">Your generated widget will appear here</div>
+                    <iframe id="widget-frame" sandbox="allow-scripts" class="hidden"></iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Code Viewer -->
+        <aside id="code-panel">
+            <div id="code-tabs">
+                <button class="tab active" data-tab="code">Generated Code</button>
+                <button class="tab" data-tab="plan">Agent Plan</button>
+                <button class="tab" data-tab="firewall">Firewall</button>
+            </div>
+            <div id="code-content" class="tab-content active">
+                <pre><code id="code-display" class="language-html">// Generated code will appear here</code></pre>
+            </div>
+            <div id="plan-content" class="tab-content">
+                <pre><code id="plan-display">// Agent plan will appear here</code></pre>
+            </div>
+            <div id="firewall-content" class="tab-content">
+                <div id="firewall-log">Firewall results will appear here when AccuKnox is enabled</div>
+            </div>
+            <button id="copy-code-btn" class="hidden" title="Copy code to clipboard">Copy Code</button>
+        </aside>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
